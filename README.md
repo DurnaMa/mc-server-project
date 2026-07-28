@@ -27,7 +27,7 @@ Key features:
 - Docker installed — check with: `docker -v`
 - Docker Compose installed — check with: `docker compose version`
 
-> **Note:** The commands below use `sudo`. If you run Docker as root or your user
+> [!NOTE] The commands below use `sudo`. If you run Docker as root or your user
 > is in the `docker` group, you can omit `sudo`.
 
 ### Steps

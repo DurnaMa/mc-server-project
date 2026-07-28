@@ -2,11 +2,13 @@ services:
   mc-server:
     build: .
     container_name: mc-server
-    restart: on-failure
+    restart: unless-stopped
     ports:
       - "8888:25565"
     volumes:
-      - ./world:/minecraft/world
+      - world:/minecraft/world
     environment:
       EULA: "TRUE"
       MINECRAFT_PORT: 25565
+volumes:
+  world:
