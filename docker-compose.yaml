@@ -10,5 +10,9 @@ services:
     environment:
       EULA: "TRUE"
       MINECRAFT_PORT: 25565
+      MAX_PLAYERS: 10
+      MOTD: "A Minecraft Server"
+      DIFFICULTY_LEVEL: easy
+      MAX_MEMORY: 2048M
 volumes:
   world:

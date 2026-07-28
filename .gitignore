@@ -3,4 +3,6 @@
 venv/
 .venv/
 __pycache__/
-world/
+world/server.properties
+server.properties
+world
