@@ -3,6 +3,6 @@
 venv/
 .venv/
 __pycache__/
-world/server.properties
 server.properties
-world
+world/
+eula.txt

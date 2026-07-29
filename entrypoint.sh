@@ -5,7 +5,10 @@
 : "${MAX_PLAYERS:=20}"
 : "${MOTD:=A Minecraft Server}"
 : "${DIFFICULTY_LEVEL:=easy}"
-: "${MAX_MEMORY:=1536M}"
+: "${MAX_MEMORY:=2048M}"
+: "${EULA:=true}"
+
+echo "eula=${EULA}" > eula.txt
 
 export MINECRAFT_PORT MAX_PLAYERS MOTD DIFFICULTY_LEVEL
 

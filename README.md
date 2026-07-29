@@ -1,5 +1,18 @@
+# MC-SERVER
+
+This repository provides a self-hosted Minecraft Java server running in Docker.
+It does not use a pre-built Minecraft image. Instead, the server image is built
+from a custom Dockerfile.
+
+Key features:
+- Server port, player limit, MOTD, difficulty and RAM are configurable through
+  environment variables.
+- Configuration is applied at runtime, so no image rebuild is needed.
+- The world data is persisted in a named Docker volume, so the game progress is
+  kept even after the container is stopped or crashes.
+
 ## Table of Contents
-- [Description](#description)
+- [Files](#Files)
 - [Quickstart](#quickstart)
   - [Prerequisites](#prerequisites)
   - [Steps](#steps)
@@ -10,16 +23,18 @@
   - [Adjust server memory (RAM)](#adjust-server-memory-ram)
   - [Test the server](#test-the-server)
 
-## Description
+## Files
 
-This repository provides a self-hosted Minecraft Java server running in Docker.
-It does not use a pre-built Minecraft image. Instead, the server image is built
-from a custom Dockerfile.
-
-Key features:
-- The server port can be configured flexibly through an environment variable.
-- The world data is persisted through a Docker volume, so the game progress is
-  kept even after the container is stopped or crashes.
+| File | Purpose |
+|---|---|
+| `README.md` | This documentation |
+| `Dockerfile` | Builds the server image and downloads `server.jar` |
+| `docker-compose.yaml` | Defines the `mc-server` service, ports, volume and variables |
+| `entrypoint.sh` | Sets defaults, renders the config, starts the server |
+| `server.properties.template` | Template with `${...}` placeholders |
+| `eula.txt` | Accepts the Minecraft EULA |
+| `.gitignore` | Excludes generated files from Git |
+| `.dockerignore` | Excludes files from the build context |
 
 ## Quickstart
 
@@ -27,8 +42,8 @@ Key features:
 - Docker installed — check with: `docker -v`
 - Docker Compose installed — check with: `docker compose version`
 
-> [!NOTE] The commands below use `sudo`. If you run Docker as root or your user
-> is in the `docker` group, you can omit `sudo`.
+> [!NOTE] 
+> The commands below use `sudo`. If you run Docker as root or your user is in the `docker` group, you can omit `sudo`.
 
 ### Steps
 1. Clone the repository: 
@@ -63,51 +78,76 @@ environment:
   MINECRAFT_PORT: 25565 # must match the right value above
 ```
 
-The left value of `ports` (`8888`) is the external port and can stay as it is.
-After changing it, rebuild and restart:
+After changing both values, recreate the container. No rebuild is needed:
 
 ```bash
-sudo docker compose up --build
+sudo docker compose up -d --force-recreate
 ```
 
 ### Persisted world data
-Only the `world/` folder is persisted through a volume. The storage location on
-the host (left side) can be chosen freely:
+
+The world data is stored in a named volume managed by Docker. It survives
+`docker compose down` and container restarts.
 
 ```yaml
+services:
+  mc-server:
+    volumes:
+      - world:/minecraft/world
+
 volumes:
-  - ./world:/minecraft/world   # left = host (free), right = container (fixed)
+  world:
 ```
 
-Do not change the right side (`/minecraft/world`) — it must match the server's
-working directory.
+The volume must be declared in two places: once in the service, and once in the
+top-level `volumes` block. Without the second one, Compose refuses to start.
+
+Do not change the right side (`/minecraft/world`). It is the path inside the
+container, defined by `WORKDIR` in the Dockerfile.
+
+> [!WARNING]
+> `docker compose down -v` deletes the volume and the world with it.
 
 ### How the entrypoint script works
-When the container starts, it runs `entrypoint.sh`. This script writes the value
-of the `MINECRAFT_PORT` variable into `server.properties` and then starts the
-Minecraft server:
 
-```sh
-#!/bin/sh
-sed -i "s/^server-port=.*/server-port=${MINECRAFT_PORT}/" server.properties
-exec java -Xmx4G -Xms4G -jar server.jar nogui
-```
-
-- `sed` replaces the `server-port` line in `server.properties` with the value
-  from `MINECRAFT_PORT`.
-- `exec` starts Java so the server reacts correctly to stop signals.
-
-### Adjust server memory (RAM)
-The memory limits are set in `entrypoint.sh`:
+On container start, `entrypoint.sh` sets a default for every variable,
+renders `server.properties.template` with `envsubst`, and starts the server.
 
 ```bash
-exec java -Xmx4G -Xms4G -jar server.jar nogui
+envsubst < server.properties.template > server.properties
 ```
 
-- `-Xmx4G` = maximum RAM
-- `-Xms4G` = initial RAM
+| Variable | Default | Description |
+|---|---|---|
+| `MINECRAFT_PORT` | `25565` | Port inside the container |
+| `MAX_PLAYERS`|`20`| Players inside the container |
+| `MOTD` | `A Minecraft Server` | Message shown in the server list |
+| `DIFFICULTY_LEVEL` | `easy` | Game difficulty: `peaceful`, `easy`, `normal`, `hard` |
+| `MAX_MEMORY` | `2048M` | JVM heap size, not a server property |
 
-Change these values and rebuild the image.
+To change a value, edit it in `docker-compose.yaml` and recreate the container.
+No rebuild is needed:
+
+```bash
+sudo docker compose up -d --force-recreate
+```
+
+Verify the result:
+
+```bash
+sudo docker exec mc-server grep max-players server.properties
+```
+
+### Adjust server memory (RAM)
+
+The default value is defined in `entrypoint.sh` and can be overridden in
+`docker-compose.yaml`. It is passed to the JVM as `-Xmx` and `-Xms`, so it does
+not appear in `server.properties`.
+
+Keep the value well below the total RAM of your host. If the JVM requests more
+memory than available, the container is killed on startup.
+
+Valid formats: `2048M` or `2G`.
 
 ### Test the server
 You can test the server with the Python tool `mcstatus`:
