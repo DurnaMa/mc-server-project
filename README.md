@@ -17,12 +17,13 @@ Key features:
   - [Prerequisites](#prerequisites)
   - [Steps](#steps)
 - [Usage](#usage)
+  - [Accept the EULA](#accept-the-eula)
   - [Change the server port](#change-the-server-port)
   - [Persisted world data](#persisted-world-data)
   - [How the entrypoint script works](#how-the-entrypoint-script-works)
   - [Adjust server memory (RAM)](#adjust-server-memory-ram)
   - [Test the server](#test-the-server)
-  - [Accept the EULA](#accept-the-eula)
+
 
 ## Files
 
