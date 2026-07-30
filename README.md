@@ -12,7 +12,7 @@ Key features:
   kept even after the container is stopped or crashes.
 
 ## Table of Contents
-- [Files](#Files)
+- [Files](#files)
 - [Quickstart](#quickstart)
   - [Prerequisites](#prerequisites)
   - [Steps](#steps)
@@ -22,6 +22,7 @@ Key features:
   - [How the entrypoint script works](#how-the-entrypoint-script-works)
   - [Adjust server memory (RAM)](#adjust-server-memory-ram)
   - [Test the server](#test-the-server)
+  - [Accept the EULA](#accept-the-eula)
 
 ## Files
 
@@ -32,9 +33,9 @@ Key features:
 | `docker-compose.yaml` | Defines the `mc-server` service, ports, volume and variables |
 | `entrypoint.sh` | Sets defaults, renders the config, starts the server |
 | `server.properties.template` | Template with `${...}` placeholders |
-| `eula.txt` | Accepts the Minecraft EULA |
 | `.gitignore` | Excludes generated files from Git |
 | `.dockerignore` | Excludes files from the build context |
+| `.gitattributes` | Enforces LF line endings for shell scripts |
 
 ## Quickstart
 
@@ -42,7 +43,7 @@ Key features:
 - Docker installed — check with: `docker -v`
 - Docker Compose installed — check with: `docker compose version`
 
-> [!NOTE] 
+> [!NOTE]
 > The commands below use `sudo`. If you run Docker as root or your user is in the `docker` group, you can omit `sudo`.
 
 ### Steps
@@ -56,7 +57,15 @@ git clone https://github.com/DurnaMa/mc-server-project
 cd mc-server-project
 ```
 
-3. Build and start the server:
+3. Create a `.env` file and accept the Minecraft EULA:
+```bash
+echo "EULA=true" > .env
+```
+
+By setting this value you agree to the [Minecraft EULA](https://aka.ms/MinecraftEULA).
+The server will not start without it.
+
+4. Build and start the server:
 ```bash
 sudo docker compose up --build
 ```
@@ -67,16 +76,18 @@ The server is now running and reachable on port `8888`.
 
 This section explains how to configure the server.
 
-### Change the server port
-The internal port is controlled by the `MINECRAFT_PORT` variable. To change it,
-edit **two matching values** in `docker-compose.yaml`:
+### Accept the EULA
 
-```yaml
-ports:
-  - "8888:25565"        # change the right value (container port)
-environment:
-  MINECRAFT_PORT: 25565 # must match the right value above
-```
+Mojang requires every server operator to accept the EULA. The default is `false`,
+so the repository does not accept it on your behalf. The value is passed in
+through a `.env` file, which is excluded from Git by `.gitignore`.
+
+Without `EULA=true`, the container starts, writes `eula=false` and exits.
+
+### Change the server port
+The port is defined in two places in [`docker-compose.yaml`](docker-compose.yaml):
+under `ports:` (the right value is the container port) and in the `environment:`
+block under `MINECRAFT_PORT`. Both values must match exactly.
 
 After changing both values, recreate the container. No rebuild is needed:
 
@@ -89,23 +100,14 @@ sudo docker compose up -d --force-recreate
 The world data is stored in a named volume managed by Docker. It survives
 `docker compose down` and container restarts.
 
-```yaml
-services:
-  mc-server:
-    volumes:
-      - world:/minecraft/world
-
-volumes:
-  world:
-```
-
-The volume must be declared in two places: once in the service, and once in the
-top-level `volumes` block. Without the second one, Compose refuses to start.
-
-Do not change the right side (`/minecraft/world`). It is the path inside the
-container, defined by `WORKDIR` in the Dockerfile.
+The volume is declared in two places in [`docker-compose.yaml`](docker-compose.yaml):
+once in the service under `volumes`, and once in the top-level `volumes` block.
+Without the second one, Compose refuses to start.
 
 > [!WARNING]
+> Do not change the right side (`/minecraft/world`). It is the path inside the 
+> container, defined by `WORKDIR` in the Dockerfile.
+> 
 > `docker compose down -v` deletes the volume and the world with it.
 
 ### How the entrypoint script works
@@ -124,6 +126,7 @@ envsubst < server.properties.template > server.properties
 | `MOTD` | `A Minecraft Server` | Message shown in the server list |
 | `DIFFICULTY_LEVEL` | `easy` | Game difficulty: `peaceful`, `easy`, `normal`, `hard` |
 | `MAX_MEMORY` | `2048M` | JVM heap size, not a server property |
+| `EULA` | `false` | Must be set to `true` to start the server |
 
 To change a value, edit it in `docker-compose.yaml` and recreate the container.
 No rebuild is needed:
