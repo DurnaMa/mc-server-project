@@ -6,7 +6,7 @@
 : "${MOTD:=A Minecraft Server}"
 : "${DIFFICULTY_LEVEL:=easy}"
 : "${MAX_MEMORY:=2048M}"
-: "${EULA:=true}"
+: "${EULA:=false}"
 
 echo "eula=${EULA}" > eula.txt
 
